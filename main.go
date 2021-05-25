@@ -25,7 +25,7 @@ func ParseConventionalCommit(msg string) (cType CType, cScope CScope, cDesc CDes
 	reScope := regexp.MustCompile(`\(([\w\d\s]+)\)!?:\s`)
 	resScope := reScope.FindStringSubmatch(msg)
 
-	reDesc := regexp.MustCompile(`: ([\w\d\s]+)\n`)
+	reDesc := regexp.MustCompile(`: (.+)\n`)
 	resDesc := reDesc.FindStringSubmatch(msg)
 
 	if len(resType) > 1 {
@@ -41,7 +41,7 @@ func ParseConventionalCommit(msg string) (cType CType, cScope CScope, cDesc CDes
 	if len(resDesc) > 1 {
 		cDesc = &resDesc[1]
 	} else {
-		return nil, nil, nil, errors.New("could not identify title")
+		return nil, nil, nil, errors.New("could not identify description")
 	}
 
 	return cType, cScope, cDesc, nil
