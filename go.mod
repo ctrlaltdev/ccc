@@ -1,3 +1,3 @@
-module ccc
+module github.com/ctrlaltdev/ccc
 
 go 1.16
