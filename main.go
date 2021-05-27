@@ -2,71 +2,73 @@ package main
 
 import (
 	"errors"
-	"io/ioutil"
+	"flag"
+	"fmt"
 	"log"
 	"os"
-	"regexp"
+	"path/filepath"
+	"strings"
 )
 
-func CheckErr(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
+var (
+	version              = "v1.0.0-alpha"
+	commitMsgFile        = flag.String("f", "", "Path to the commit message file")
+	shouldInit           = flag.Bool("init", false, "Install git hook in the current repository")
+	shouldDisplayVersion = flag.Bool("version", false, "Display version of the binary")
+	hookCmd              = "ccc -f $@"
+)
+
+func DisplayVersion() {
+	fmt.Printf("Conventional Commit Checker\nCCC - %s\n", version)
+	os.Exit(0)
 }
 
-type CType *string
-type CScope *string
-type CDesc *string
+func InitHook() error {
+	cwd, err := os.Getwd()
+	CheckErr(err)
 
-func ParseConventionalCommit(msg string) (cType CType, cScope CScope, cDesc CDesc, err error) {
-	reType := regexp.MustCompile(`^(\w+)(?:\(\w+\))?!?:\s`)
-	resType := reType.FindStringSubmatch(msg)
+	gitFolder, err := FindFolderInParent(cwd, ".git")
+	CheckErr(err)
 
-	reScope := regexp.MustCompile(`\(([\w\d\s]+)\)!?:\s`)
-	resScope := reScope.FindStringSubmatch(msg)
+	hooksFolder := filepath.Join(gitFolder, "hooks")
 
-	reDesc := regexp.MustCompile(`: (.+)\n`)
-	resDesc := reDesc.FindStringSubmatch(msg)
+	err = CreateFolderIfNotExists(hooksFolder, 0755)
+	CheckErr(err)
 
-	if len(resType) > 1 {
-		cType = &resType[1]
-	} else {
-		return nil, nil, nil, errors.New("could not identify type")
+	hookFile := filepath.Join(hooksFolder, "commit-msg")
+
+	data := ReadFile(hookFile)
+
+	if !strings.Contains(data, hookCmd) {
+		WriteFile(hookFile, fmt.Sprintf("%s\n%s\n", data, hookCmd))
+		fmt.Println("Conventional Commit Checker Git Hook Installed")
 	}
 
-	if len(resScope) > 1 {
-		cScope = &resScope[1]
-	}
-
-	if len(resDesc) > 1 {
-		cDesc = &resDesc[1]
-	} else {
-		return nil, nil, nil, errors.New("could not identify description")
-	}
-
-	return cType, cScope, cDesc, nil
-}
-
-func ParseCommit(msg string) error {
-	_, _, _, err := ParseConventionalCommit(msg)
-
-	if err != nil {
-		return err
-	}
+	fmt.Println("Conventional Commit Checker Git Hook Already Installed")
 
 	return nil
 }
 
 func main() {
-	file := os.Args[1]
+	flag.Parse()
 
-	data, err := ioutil.ReadFile(file)
-	CheckErr(err)
+	if *shouldDisplayVersion {
+		DisplayVersion()
+	}
 
-	msg := string(data)
-	err = ParseCommit(msg)
-	if err != nil {
-		log.Println(err)
-		log.Fatal(errors.New("commit message should follow the conventional commit format: <type>[optional scope]: <description>"))
+	if *shouldInit {
+		err := InitHook()
+		CheckErr(err)
+		os.Exit(0)
+	}
+
+	if *commitMsgFile != "" {
+		msg := ReadFile(*commitMsgFile)
+		err := ParseCommit(msg)
+		if err != nil {
+			log.Println(err)
+			log.Fatal(errors.New("commit message should follow the conventional commit format: <type>[optional scope]: <description>"))
+		}
+		os.Exit(0)
 	}
 }
