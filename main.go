@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	version              = "v1.0.0-alpha"
+	version              = "v1.0.0-alpha.1"
 	commitMsgFile        = flag.String("f", "", "Path to the commit message file")
 	shouldInit           = flag.Bool("init", false, "Install git hook in the current repository")
 	shouldDisplayVersion = flag.Bool("version", false, "Display version of the binary")
