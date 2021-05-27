@@ -21,6 +21,7 @@ func ReadFile(path string) string {
 		return ""
 	}
 	data, err := ioutil.ReadFile(path)
+	CheckErr(err)
 
 	return string(data)
 }
